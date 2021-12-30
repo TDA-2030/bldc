@@ -1,9 +1,9 @@
 /*
-	Copyright 2016 - 2020 Benjamin Vedder	benjamin@vedder.se
+    Copyright 2016 - 2020 Benjamin Vedder	benjamin@vedder.se
 
-	This file is part of the VESC firmware.
+    This file is part of the VESC firmware.
 
-	The VESC firmware is free software: you can redistribute it and/or modify
+    The VESC firmware is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
     (at your option) any later version.
@@ -26,6 +26,9 @@
 #define HW_NAME					"60_MK4"
 #elif defined(HW60_IS_MK5)
 #define HW_NAME					"60_MK5"
+#elif defined(HW60_IS_YONG)
+#define HW60_IS_PR60
+#define HW_NAME					"60_PR60"//"60_YONG"
 #else
 #define HW_NAME					"60"
 #endif
@@ -37,7 +40,7 @@
 #define HW_HAS_DRV8301
 #define HW_HAS_3_SHUNTS
 #define HW_HAS_PHASE_SHUNTS
-#if !defined(HW60_IS_MK3) && !defined(HW60_IS_MK4) && !defined(HW60_IS_MK5)
+#if !defined(HW60_IS_MK3) && !defined(HW60_IS_MK4) && !defined(HW60_IS_MK5) && !defined(HW60_IS_YONG)
 #define HW_HAS_PERMANENT_NRF
 #endif
 
@@ -272,7 +275,7 @@
 #define HW_ENC_TIM_ISR_CH		TIM3_IRQn
 #define HW_ENC_TIM_ISR_VEC		TIM3_IRQHandler
 
-#if !defined(HW60_IS_MK3) && !defined(HW60_IS_MK4) && !defined(HW60_IS_MK5)
+#if !defined(HW60_IS_MK3) && !defined(HW60_IS_MK4) && !defined(HW60_IS_MK5) && !defined(HW60_IS_YONG)
 // NRF pins
 #define NRF_PORT_CSN			GPIOB
 #define NRF_PIN_CSN				12
@@ -297,20 +300,20 @@
 #define HW_SPI_PIN_MISO			6
 
 // SPI for DRV8301
-#if !defined(HW60_IS_MK3) && !defined(HW60_IS_MK4) && !defined(HW60_IS_MK5)
-#define DRV8301_MOSI_GPIO		GPIOC
-#define DRV8301_MOSI_PIN		12
-#define DRV8301_MISO_GPIO		GPIOC
-#define DRV8301_MISO_PIN		11
+#if !defined(HW60_IS_MK3) && !defined(HW60_IS_MK4) && !defined(HW60_IS_MK5) && !defined(HW60_IS_YONG)
+#define DRV8301_MOSI_GPIO		GPIOB
+#define DRV8301_MOSI_PIN		4
+#define DRV8301_MISO_GPIO		GPIOB
+#define DRV8301_MISO_PIN		3
 #define DRV8301_SCK_GPIO		GPIOC
 #define DRV8301_SCK_PIN			10
 #define DRV8301_CS_GPIO			GPIOC
 #define DRV8301_CS_PIN			9
 #else
-#define DRV8301_MOSI_GPIO		GPIOB
-#define DRV8301_MOSI_PIN		4
-#define DRV8301_MISO_GPIO		GPIOB
-#define DRV8301_MISO_PIN		3
+#define DRV8301_MOSI_GPIO		GPIOC
+#define DRV8301_MOSI_PIN		12
+#define DRV8301_MISO_GPIO		GPIOC
+#define DRV8301_MISO_PIN		11
 #define DRV8301_SCK_GPIO		GPIOC
 #define DRV8301_SCK_PIN			10
 #define DRV8301_CS_GPIO			GPIOC
