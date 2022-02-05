@@ -191,6 +191,8 @@ typedef struct {
 	// Resistance observer
 	float m_r_est;
 	float m_r_est_state;
+
+	float m_last_brake_vol;
 } motor_all_state_t;
 
 // Private variables
@@ -2411,6 +2413,43 @@ void mcpwm_foc_tim_sample_int_handler(void) {
 	}
 }
 
+#include "servo_simple.h"
+#include "app.h"
+static void mcpwm_foc_brake_update(volatile motor_all_state_t *motor_now)
+{
+	if (!app_get_configuration()->servo_out_enable) {
+		return;
+	}
+	
+	const float brake_resistance = 1.0f;
+	const float max_regen_current = 0.002f;
+	float vbus_voltage = motor_now->m_motor_state.v_bus;
+    float Ibus_sum = mcpwm_foc_get_tot_current_in_filtered();
+	// if (0 == motor_now->m_last_brake_vol) {
+	// 	motor_now->m_last_brake_vol = vbus_voltage;
+	// }
+	float vol_err = vbus_voltage - motor_now->m_last_brake_vol;
+	// Don't start braking until -Ibus > regen_current_allowed
+	float brake_current = -Ibus_sum - max_regen_current;
+	if (vol_err > 0.1f) {
+		brake_current += vol_err / brake_resistance;
+	}
+
+	float brake_duty = brake_current * brake_resistance / vbus_voltage;
+	if (UTILS_IS_NAN(brake_duty)) {
+		return;
+	}
+	if (motor_now->m_state == MC_STATE_RUNNING)
+	{
+		utils_truncate_number(&brake_duty, 0.0f, 0.95f);
+		servo_simple_set_output(brake_duty);
+	} else {
+		brake_duty=0.0f;
+		servo_simple_set_output(brake_duty);
+	}
+}
+
+
 void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 	(void)p;
 	(void)flags;
@@ -2924,9 +2963,11 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 		motor_now->m_motor_state.iq_target = iq_set_tmp;
 
 		control_current(motor_now, dt);
+		mcpwm_foc_brake_update(motor_now);
 	} else {
 		// Motor is not running
 
+		motor_now->m_last_brake_vol = motor_now->m_motor_state.v_bus;
 		// The current is 0 when the motor is undriven
 		motor_now->m_motor_state.i_alpha = 0.0;
 		motor_now->m_motor_state.i_beta = 0.0;

@@ -31,6 +31,8 @@
 // Settings
 #define TIM_CLOCK			1000000 // Hz
 
+#define BRAKE_FREQ 10000
+
 // Private variables
 static volatile bool m_is_running = false;
 
@@ -43,8 +45,13 @@ void servo_simple_init(void) {
 
 	HW_ICU_TIM_CLK_EN();
 
+#ifndef BRAKE_FREQ
 	TIM_TimeBaseStructure.TIM_Period = (uint16_t)((uint32_t)TIM_CLOCK / (uint32_t)SERVO_OUT_RATE_HZ);
 	TIM_TimeBaseStructure.TIM_Prescaler = (uint16_t)((168000000 / 2) / TIM_CLOCK) - 1;
+#else
+	TIM_TimeBaseStructure.TIM_Period = (uint16_t)((uint32_t)84000000 / (uint32_t)BRAKE_FREQ);
+	TIM_TimeBaseStructure.TIM_Prescaler = (uint16_t)((168000000 / 2) / 84000000) - 1;
+#endif
 	TIM_TimeBaseStructure.TIM_ClockDivision = 0;
 	TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;
 
@@ -92,10 +99,13 @@ void servo_simple_set_output(float out) {
 
 	utils_truncate_number(&out, 0.0, 1.0);
 
+#ifndef BRAKE_FREQ
 	float us = (float)SERVO_OUT_PULSE_MIN_US + out *
 			(float)(SERVO_OUT_PULSE_MAX_US - SERVO_OUT_PULSE_MIN_US);
 	us *= (float)TIM_CLOCK / 1000000.0;
-
+#else
+	float us = out * (float)HW_ICU_TIMER->ARR;
+#endif
 	if (HW_ICU_CHANNEL == ICU_CHANNEL_1) {
 		HW_ICU_TIMER->CCR1 = (uint32_t)us;
 	} else if (HW_ICU_CHANNEL == ICU_CHANNEL_2) {
