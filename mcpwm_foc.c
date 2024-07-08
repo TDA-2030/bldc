@@ -2415,38 +2415,38 @@ void mcpwm_foc_tim_sample_int_handler(void) {
 
 #include "servo_simple.h"
 #include "app.h"
+#define MAX(x, y)  (((x) > (y)) ? (x) : (y))
 static void mcpwm_foc_brake_update(volatile motor_all_state_t *motor_now)
 {
 	if (!app_get_configuration()->servo_out_enable) {
 		return;
 	}
 	
-	const float brake_resistance = 1.0f;
-	const float max_regen_current = 0.002f;
-	float vbus_voltage = motor_now->m_motor_state.v_bus;
-    float Ibus_sum = mcpwm_foc_get_tot_current_in_filtered();
-	// if (0 == motor_now->m_last_brake_vol) {
-	// 	motor_now->m_last_brake_vol = vbus_voltage;
-	// }
-	float vol_err = vbus_voltage - motor_now->m_last_brake_vol;
-	// Don't start braking until -Ibus > regen_current_allowed
-	float brake_current = -Ibus_sum - max_regen_current;
-	if (vol_err > 0.1f) {
-		brake_current += vol_err / brake_resistance;
-	}
+	const float brake_resistance = 4.0f;
+	// const float max_regen_current = 0.002f;
+	const float dc_bus_overvoltage_ramp_start = 1.02f;
+	const float dc_bus_overvoltage_ramp_end = 1.15f;
 
-	float brake_duty = brake_current * brake_resistance / vbus_voltage;
+	// calculate current
+	float vbus_voltage = motor_now->m_motor_state.v_bus;
+	float brake_current = 0;
+	float brake_duty = 0;
+    // float Ibus_sum = mcpwm_foc_get_tot_current_in_filtered();
+	// Don't start braking until -Ibus > regen_current_allowed
+	// brake_current = -Ibus_sum - max_regen_current;
+	float ov = ((vbus_voltage/motor_now->m_last_brake_vol) - dc_bus_overvoltage_ramp_start) / (dc_bus_overvoltage_ramp_end - dc_bus_overvoltage_ramp_start);
+	brake_duty += MAX(ov, 0.0f);
+
+	// float brake_duty = brake_current * brake_resistance / vbus_voltage;
 	if (UTILS_IS_NAN(brake_duty)) {
 		return;
 	}
-	if (motor_now->m_state == MC_STATE_RUNNING)
-	{
-		utils_truncate_number(&brake_duty, 0.0f, 0.95f);
-		servo_simple_set_output(brake_duty);
+	if (motor_now->m_state == MC_STATE_RUNNING)	{
+		utils_truncate_number(&brake_duty, 0.0f, 0.60f);
 	} else {
-		brake_duty=0.0f;
-		servo_simple_set_output(brake_duty);
+		brake_duty = 0.0f;
 	}
+	servo_simple_set_output(brake_duty);
 }
 
 
